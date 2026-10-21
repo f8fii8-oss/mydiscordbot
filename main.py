@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 from flask import Flask
 from threading import Thread
+import yt_dlp
 
 app = Flask('')
 
@@ -43,12 +44,12 @@ async def join(interaction: discord.Interaction):
     else:
         await interaction.followup.send("You must be in a voice channel first.")
 
-@bot.tree.command(name="play", description="Play audio stream")
+@bot.tree.command(name="play", description="Play audio from link")
 async def play(interaction: discord.Interaction, url: str):
-    await interaction.response.send_message(f"🔍 Connecting and streaming audio...")
+    await interaction.response.defer()
     
     if not interaction.user.voice or not interaction.user.voice.channel:
-        await interaction.edit_original_response(content="You must be in a voice channel first!")
+        await interaction.followup.send("You must be in a voice channel first!")
         return
 
     channel = interaction.user.voice.channel
@@ -63,22 +64,31 @@ async def play(interaction: discord.Interaction, url: str):
         if voice_client.is_playing():
             voice_client.stop()
 
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'noplaylist': True,
+            'quiet': True,
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            audio_url = info.get('url', None)
+
+        if not audio_url:
+            await interaction.followup.send("Could not extract audio from this link.")
+            return
+
         ffmpeg_options = {
-            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -fflags nobuffer',
-            'options': '-vn -ar 48000 -ac 2'
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+            'options': '-vn'
         }
 
-        audio_source = discord.FFmpegPCMAudio(url, executable="ffmpeg", **ffmpeg_options)
+        audio_source = discord.FFmpegPCMAudio(audio_url, executable="ffmpeg", **ffmpeg_options)
+        voice_client.play(audio_source)
         
-        def after_playing(error):
-            if error:
-                print(f"Player error: {error}")
-
-        voice_client.play(audio_source, after=after_playing)
-        
-        await interaction.edit_original_response(content=f"🎶 Audio stream is active and playing!")
+        await interaction.followup.send(f"🎶 Now playing your audio stream!")
     except Exception as e:
-        await interaction.edit_original_response(content=f"Error: {str(e)}")
+        await interaction.followup.send(f"Error: {str(e)}")
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 bot.run(TOKEN)
