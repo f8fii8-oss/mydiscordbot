@@ -3,7 +3,6 @@ import discord
 from discord.ext import commands
 from flask import Flask
 from threading import Thread
-import yt_dlp
 
 app = Flask('')
 
@@ -44,9 +43,9 @@ async def join(interaction: discord.Interaction):
     else:
         await interaction.followup.send("You must be in a voice channel first.")
 
-@bot.tree.command(name="play", description="Play audio")
-async def play(interaction: discord.Interaction, search: str):
-    await interaction.response.send_message(f"🔍 Searching and loading: `{search}`...")
+@bot.tree.command(name="play", description="Play direct audio URL")
+async def play(interaction: discord.Interaction, url: str):
+    await interaction.response.send_message(f"🔍 Loading audio...")
     
     if not interaction.user.voice or not interaction.user.voice.channel:
         await interaction.edit_original_response(content="You must be in a voice channel first!")
@@ -61,21 +60,6 @@ async def play(interaction: discord.Interaction, search: str):
         await voice_client.move_to(channel)
 
     try:
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'default_search': 'ytsearch1',
-            'noplaylist': True,
-            'extractor_args': {'youtube': {'player_client': ['android']}},
-            'socket_timeout': 30,
-        }
-        
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(search, download=False)
-            if 'entries' in info:
-                info = info['entries'][0]
-            audio_url = info['url']
-            title = info.get('title', 'Audio')
-
         if voice_client.is_playing():
             voice_client.stop()
 
@@ -84,10 +68,10 @@ async def play(interaction: discord.Interaction, search: str):
             'options': '-vn'
         }
 
-        audio_source = discord.FFmpegPCMAudio(audio_url, executable="ffmpeg", **ffmpeg_options)
+        audio_source = discord.FFmpegPCMAudio(url, executable="ffmpeg", **ffmpeg_options)
         voice_client.play(audio_source)
         
-        await interaction.edit_original_response(content=f"🎶 Now playing: **{title}**")
+        await interaction.edit_original_response(content=f"🎶 Now playing audio stream!")
     except Exception as e:
         await interaction.edit_original_response(content=f"Error: {str(e)}")
 
