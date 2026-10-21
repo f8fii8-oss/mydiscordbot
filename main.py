@@ -45,7 +45,7 @@ async def join(interaction: discord.Interaction):
 
 @bot.tree.command(name="play", description="Play audio stream")
 async def play(interaction: discord.Interaction, url: str):
-    await interaction.response.send_message(f"🔍 Connecting to audio stream...")
+    await interaction.response.send_message(f"🔍 Connecting and streaming audio...")
     
     if not interaction.user.voice or not interaction.user.voice.channel:
         await interaction.edit_original_response(content="You must be in a voice channel first!")
@@ -65,13 +65,18 @@ async def play(interaction: discord.Interaction, url: str):
 
         ffmpeg_options = {
             'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-            'options': '-vn'
+            'options': '-vn -b:a 192k'
         }
 
         audio_source = discord.FFmpegPCMAudio(url, executable="ffmpeg", **ffmpeg_options)
-        voice_client.play(audio_source)
         
-        await interaction.edit_original_response(content=f"🎶 Now playing!")
+        def after_playing(error):
+            if error:
+                print(f"Player error: {error}")
+
+        voice_client.play(audio_source, after=after_playing)
+        
+        await interaction.edit_original_response(content=f"🎶 Audio stream is active and playing!")
     except Exception as e:
         await interaction.edit_original_response(content=f"Error: {str(e)}")
 
