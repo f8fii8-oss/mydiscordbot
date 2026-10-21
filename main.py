@@ -3,10 +3,7 @@ import discord
 from discord.ext import commands
 from flask import Flask
 from threading import Thread
-import urllib.request
-import urllib.parse
-import json
-import re
+import yt_dlp
 
 app = Flask('')
 
@@ -47,25 +44,12 @@ async def join(interaction: discord.Interaction):
     else:
         await interaction.followup.send("You must be in a voice channel first.")
 
-def search_youtube(query):
-    try:
-        # البحث الآمن عن الفيديو بدون أخطاء يوتيوب أو الحظر
-        query_string = urllib.parse.urlencode({'search_query': query})
-        html_content = urllib.request.urlopen(f"https://www.youtube.com/results?{query_string}")
-        search_results = re.findall(r'/watch\?v=(.{11})', html_content.read().decode())
-        if search_results:
-            video_id = search_results[0]
-            return f"https://www.youtube.com/watch?v={video_id}"
-    except Exception:
-        pass
-    return None
-
-@bot.tree.command(name="play", description="Play a song from YouTube")
-async def play(interaction: discord.Interaction, query: str):
-    await interaction.response.send_message(f"🔍 Searching: `{query}`...")
+@bot.tree.command(name="play", description="Play audio")
+async def play(interaction: discord.Interaction, search: str):
+    await interaction.response.send_message(f"🔍 Searching and loading: `{search}`...")
     
     if not interaction.user.voice or not interaction.user.voice.channel:
-        await interaction.edit_original_response(content="You must be in a voice channel first.")
+        await interaction.edit_original_response(content="You must be in a voice channel first!")
         return
 
     channel = interaction.user.voice.channel
@@ -77,23 +61,18 @@ async def play(interaction: discord.Interaction, query: str):
         await voice_client.move_to(channel)
 
     try:
-        url = query
-        if not query.startswith("http"):
-            url = search_youtube(query)
-            if not url:
-                await interaction.edit_original_response(content="❌ لم يتم العثور على مقطع مطابق.")
-                return
-
-        import yt_dlp
-        ytdl_opts = {
-            'format': 'bestaudio/best',
+        ydl_opts = {
+            'format': 'bestaudio',
+            'default_search': 'ytsearch1',
             'noplaylist': True,
-            'extractor_args': {'youtube': {'player_client': ['android']}},
+            'quiet': True,
         }
         
-        with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            audio_url = info.get('url')
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(search, download=False)
+            if 'entries' in info:
+                info = info['entries'][0]
+            audio_url = info['url']
             title = info.get('title', 'Audio')
 
         if voice_client.is_playing():
@@ -109,7 +88,7 @@ async def play(interaction: discord.Interaction, query: str):
         
         await interaction.edit_original_response(content=f"🎶 Now playing: **{title}**")
     except Exception as e:
-        await interaction.edit_original_response(content=f"Error: تعذر تشغيل المقطع، جرب اسماً آخر.")
+        await interaction.edit_original_response(content="❌ An error occurred, please try another search term.")
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 bot.run(TOKEN)
