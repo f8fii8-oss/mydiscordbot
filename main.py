@@ -62,10 +62,11 @@ async def play(interaction: discord.Interaction, search: str):
 
     try:
         ydl_opts = {
-            'format': 'bestaudio',
+            'format': 'bestaudio/best',
             'default_search': 'ytsearch1',
             'noplaylist': True,
-            'quiet': True,
+            'extractor_args': {'youtube': {'player_client': ['android']}},
+            'socket_timeout': 30,
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -88,7 +89,7 @@ async def play(interaction: discord.Interaction, search: str):
         
         await interaction.edit_original_response(content=f"🎶 Now playing: **{title}**")
     except Exception as e:
-        await interaction.edit_original_response(content="❌ An error occurred, please try another search term.")
+        await interaction.edit_original_response(content=f"Error: {str(e)}")
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 bot.run(TOKEN)
