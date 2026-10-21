@@ -9,7 +9,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is running!"
+    return "Bot is running 24/7!"
 
 def run():
     app.run(host='0.0.0.0', port=8080)
@@ -61,16 +61,33 @@ async def play(interaction: discord.Interaction, url: str):
         await voice_client.move_to(channel)
 
     try:
-        ytdl_opts = {'format': 'bestaudio', 'noplaylist': True}
+        ytdl_opts = {
+            'format': 'bestaudio/best',
+            'noplaylist': True,
+            'extractaudio': True,
+            'default_search': 'auto',
+            'ignoreerrors': False,
+            'no_warnings': True,
+            'geo_bypass': True,
+        }
+        
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
+            if 'entries' in info:
+                info = info['entries'][0]
             audio_url = info['url']
             title = info.get('title', 'Audio')
 
         if voice_client.is_playing():
             voice_client.stop()
 
-        audio_source = discord.FFmpegPCMAudio(audio_url, executable="ffmpeg", options="-vn")
+        # إعدادات تشغيل الصوت عبر FFMpeg مع تجاوز مشاكل الاتصال
+        ffmpeg_options = {
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+            'options': '-vn'
+        }
+
+        audio_source = discord.FFmpegPCMAudio(audio_url, executable="ffmpeg", **ffmpeg_options)
         voice_client.play(audio_source)
         
         await interaction.followup.send(f"Now playing: {title}")
