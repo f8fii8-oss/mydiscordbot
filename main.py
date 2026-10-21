@@ -44,9 +44,9 @@ async def join(interaction: discord.Interaction):
     else:
         await interaction.followup.send("You must be in a voice channel first.")
 
-@bot.tree.command(name="play", description="Play a song from YouTube")
-async def play(interaction: discord.Interaction, url: str):
-    await interaction.response.send_message(f"🔍 Searching: `{url}`...")
+@bot.tree.command(name="play", description="Play audio from URL or search")
+async def play(interaction: discord.Interaction, query: str):
+    await interaction.response.send_message(f"🔍 Loading: `{query}`...")
     
     if not interaction.user.voice or not interaction.user.voice.channel:
         await interaction.edit_original_response(content="You must be in a voice channel first.")
@@ -61,19 +61,25 @@ async def play(interaction: discord.Interaction, url: str):
         await voice_client.move_to(channel)
 
     try:
-        ytdl_opts = {
-            'format': 'bestaudio/best',
-            'noplaylist': True,
-            'default_search': 'ytsearch',
-            'extractor_args': {'youtube': {'player_client': ['android']}}
-        }
-        
-        with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            if 'entries' in info:
-                info = info['entries'][0]
-            audio_url = info['url']
-            title = info.get('title', 'Audio')
+        # إذا كان الرابط مباشر لملف صوتي (.mp3 أو غيره) شغله فوراً بدون يوتيوب
+        if query.startswith("http") and not ("youtube.com" in query or "youtu.be" in query):
+            audio_url = query
+            title = "Direct Audio Link"
+        else:
+            # البحث عبر yt-dlp مع تجاوز الحظر
+            ytdl_opts = {
+                'format': 'bestaudio/best',
+                'noplaylist': True,
+                'default_search': 'ytsearch',
+                'extractor_args': {'youtube': {'player_client': ['android']}},
+            }
+            
+            with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
+                info = ydl.extract_info(query, download=False)
+                if 'entries' in info:
+                    info = info['entries'][0]
+                audio_url = info['url']
+                title = info.get('title', 'Audio')
 
         if voice_client.is_playing():
             voice_client.stop()
@@ -88,7 +94,7 @@ async def play(interaction: discord.Interaction, url: str):
         
         await interaction.edit_original_response(content=f"🎶 Now playing: **{title}**")
     except Exception as e:
-        await interaction.edit_original_response(content=f"Error: {str(e)}")
+        await interaction.edit_original_response(content=f"Error: حدث خطأ في تشغيل المقطع، جرب رابط مباشر أو اسم آخر.")
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 bot.run(TOKEN)
