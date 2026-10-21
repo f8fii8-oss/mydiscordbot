@@ -46,8 +46,7 @@ async def join(interaction: discord.Interaction):
 
 @bot.tree.command(name="play", description="Play a song from YouTube")
 async def play(interaction: discord.Interaction, url: str):
-    # الرد بشكل فوري لمنع التعليق وتجاوز مهلة ديسكورد
-    await interaction.response.send_message(f"🔍 Searching and loading: `{url}`...")
+    await interaction.response.send_message(f"🔍 Searching: `{url}`...")
     
     if not interaction.user.voice or not interaction.user.voice.channel:
         await interaction.edit_original_response(content="You must be in a voice channel first.")
@@ -66,7 +65,7 @@ async def play(interaction: discord.Interaction, url: str):
             'format': 'bestaudio/best',
             'noplaylist': True,
             'default_search': 'ytsearch',
-            'source_address': '0.0.0.0'
+            'extractor_args': {'youtube': {'player_client': ['android']}}
         }
         
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
