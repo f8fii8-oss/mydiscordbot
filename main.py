@@ -46,10 +46,11 @@ async def join(interaction: discord.Interaction):
 
 @bot.tree.command(name="play", description="Play a song from YouTube")
 async def play(interaction: discord.Interaction, url: str):
-    await interaction.response.defer()
+    # الرد بشكل فوري لمنع التعليق وتجاوز مهلة ديسكورد
+    await interaction.response.send_message(f"🔍 Searching and loading: `{url}`...")
     
     if not interaction.user.voice or not interaction.user.voice.channel:
-        await interaction.followup.send("You must be in a voice channel first.")
+        await interaction.edit_original_response(content="You must be in a voice channel first.")
         return
 
     channel = interaction.user.voice.channel
@@ -86,9 +87,9 @@ async def play(interaction: discord.Interaction, url: str):
         audio_source = discord.FFmpegPCMAudio(audio_url, executable="ffmpeg", **ffmpeg_options)
         voice_client.play(audio_source)
         
-        await interaction.followup.send(f"Now playing: {title}")
+        await interaction.edit_original_response(content=f"🎶 Now playing: **{title}**")
     except Exception as e:
-        await interaction.followup.send(f"Error: {str(e)}")
+        await interaction.edit_original_response(content=f"Error: {str(e)}")
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 bot.run(TOKEN)
