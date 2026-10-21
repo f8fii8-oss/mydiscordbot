@@ -1,4 +1,4 @@
 discord.py[voice]
-yt-dlp
+yt-dlp --upgrade
 Flask
 PyNaCl==1.5.0
