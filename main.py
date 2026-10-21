@@ -64,11 +64,8 @@ async def play(interaction: discord.Interaction, url: str):
         ytdl_opts = {
             'format': 'bestaudio/best',
             'noplaylist': True,
-            'extractaudio': True,
-            'default_search': 'auto',
-            'ignoreerrors': False,
-            'no_warnings': True,
-            'geo_bypass': True,
+            'default_search': 'ytsearch',
+            'source_address': '0.0.0.0'
         }
         
         with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
@@ -81,7 +78,6 @@ async def play(interaction: discord.Interaction, url: str):
         if voice_client.is_playing():
             voice_client.stop()
 
-        # إعدادات تشغيل الصوت عبر FFMpeg مع تجاوز مشاكل الاتصال
         ffmpeg_options = {
             'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
             'options': '-vn'
