@@ -64,8 +64,8 @@ async def play(interaction: discord.Interaction, url: str):
             voice_client.stop()
 
         ffmpeg_options = {
-            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-            'options': '-vn -b:a 192k'
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -fflags nobuffer',
+            'options': '-vn -ar 48000 -ac 2'
         }
 
         audio_source = discord.FFmpegPCMAudio(url, executable="ffmpeg", **ffmpeg_options)
